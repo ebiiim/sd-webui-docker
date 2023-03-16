@@ -36,19 +36,13 @@ WORKDIR /work/stable-diffusion-webui
 # version: Mar 14, 2023
 RUN git checkout a9fed7c364061ae6efb37f797b6b522cb3cf7aa2
 
-# preload
-RUN curl -L -o models/Stable-diffusion/v1-5-pruned-emaonly.safetensors https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors
-RUN python3 -mvenv venv
-RUN /work/stable-diffusion-webui/venv/bin/pip install torch==1.13.1+cu117 -i https://download.pytorch.org/whl/cu117
-RUN /work/stable-diffusion-webui/venv/bin/pip install xformers==0.0.16rc425
-
 # setup
-RUN /work/stable-diffusion-webui/venv/bin/python -c "from launch import *; prepare_environment()" --skip-torch-cuda-test
+RUN python3 -mvenv venv && /work/stable-diffusion-webui/venv/bin/python -c "from launch import *; prepare_environment()" --skip-torch-cuda-test --no-download-sd-model
 
 
 ################################
-# post setup
+# entrypoint
 ################################
 
 EXPOSE 7860
-ENTRYPOINT ["/work/stable-diffusion-webui/venv/bin/python", "webui.py", "--listen"]
+ENTRYPOINT ["/work/stable-diffusion-webui/venv/bin/python", "launch.py", "--listen"]
