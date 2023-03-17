@@ -1,5 +1,6 @@
 FROM nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu22.04
 
+LABEL maintainer "Shunsuke Ise <ise@ebiiim.com>"
 
 ################################
 # init
@@ -18,7 +19,7 @@ RUN apt-get update -y \
     python3-pip \
     libgl1 \
     libglib2.0-0
-RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+RUN apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # user and workdir
 RUN useradd -m user
