@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: stable-diffusion-webui
+  labels:
+    app: stable-diffusion-webui
+spec:
+  serviceName: stable-diffusion-webui
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stable-diffusion-webui
+  template:
+    metadata:
+      labels:
+        app: stable-diffusion-webui
+    spec:
+      initContainers:
+        - name: init-volume-permission
+          image: busybox:1
+          volumeMounts:
+            - name: shared-models
+              mountPath: /shared-models
+            - name: shared-embeddings
+              mountPath: /shared-embeddings
+            - name: shared-outputs
+              mountPath: /shared-outputs
+            - name: configs
+              mountPath: /configs
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              echo "set permissions" \
+              && find /shared-models -maxdepth 1 -type d -exec chmod -v 777 {} \; \
+              && find /shared-embeddings -maxdepth 1 -type d -exec chmod -v 777 {} \; \
+              && find /shared-outputs -maxdepth 1 -type d -exec chmod -v 777 {} \; \
+              && find /configs -maxdepth 1 -type d -exec chmod -v 777 {} \;
+        - name: init-config-create
+          image: sd-webui
+          volumeMounts:
+            - name: configs
+              mountPath: /configs
+          command: ["/bin/sh"]
+          args:
+            - "-c"
+            - |
+              echo "create empty configs if not exist" \
+              && CFG=/configs/config.json \
+              && if [ ! -f "$CFG" ] ; then echo "{}" > "$CFG" ; fi \
+              && CFG=/configs/ui-config.json \
+              && if [ ! -f "$CFG" ] ; then echo "{}" > "$CFG" ; fi
+        - name: init-config-set-output-dir
+          image: sd-webui
+          volumeMounts:
+            - name: configs
+              mountPath: /configs
+          command: ["/bin/sh"]
+          args:
+            - "-c"
+            - |
+              echo "set output dirs to the config file" \
+              && CFG=/configs/config.json \
+              && OUT_T2I=/shared-outputs/$HOSTNAME/outputs/txt2img-images \
+              && OUT_I2I=/shared-outputs/$HOSTNAME/outputs/img2img-images \
+              && OUT_EX=/shared-outputs/$HOSTNAME/outputs/extras-images \
+              && OUT_T2I_G=/shared-outputs/$HOSTNAME/outputs/txt2img-grids \
+              && OUT_I2I_G=/shared-outputs/$HOSTNAME/outputs/img2img-grids \
+              && OUT_SAVE=/shared-outputs/$HOSTNAME/log/images \
+              && ./venv/bin/python -c \
+                  "from modules import shared; shared.opts.load('$CFG'); shared.opts.set('outdir_txt2img_samples', '$OUT_T2I'); shared.opts.set('outdir_img2img_samples', '$OUT_I2I'); shared.opts.set('outdir_extras_samples', '$OUT_EX'); shared.opts.set('outdir_txt2img_grids', '$OUT_T2I_G'); shared.opts.set('outdir_img2img_grids', '$OUT_I2I_G'); shared.opts.set('outdir_save', '$OUT_SAVE'); shared.opts.save('$CFG')"
+        - name: init-config-mod
+          image: sd-webui
+          volumeMounts:
+            - name: configs
+              mountPath: /configs
+          command: ["/bin/sh"]
+          args:
+            - "-c"
+            - |
+              echo "modify the config file" \
+              && CFG=/configs/config.json \
+              && ./venv/bin/python -c \
+                  "from modules import shared; shared.opts.load('$CFG'); shared.opts.set('save_txt', True); shared.opts.save('$CFG')"
+      containers:
+        - name: stable-diffusion-webui
+          image: sd-webui
+          ports:
+            - name: http
+              containerPort: 7860
+          volumeMounts:
+            # NOTE: an ext4 volume has a `lost+found` dir on its root path and causes the app crash (due to the permission), so avoid using root paths (or use xfs, or chmod 777)
+            - name: shared-models
+              mountPath: /shared-models
+              readOnly: true
+            - name: shared-embeddings
+              mountPath: /shared-embeddings
+              readOnly: true
+            - name: shared-outputs
+              mountPath: /shared-outputs
+            - name: configs
+              mountPath: /configs
+          resources:
+            requests:
+              memory: 10Gi
+              cpu: 1000m
+              nvidia.com/gpu: "1"
+            limits:
+              memory: 20Gi
+              cpu: 2000m
+              nvidia.com/gpu: "1"
+          args:
+            - --xformers
+            - --api
+            - --no-download-sd-model
+            - --ui-settings-file=/configs/config.json
+            - --ui-config-file=/configs/ui-config.json
+            - --ckpt-dir=/shared-models/models/Stable-diffusion
+            - --embeddings-dir=/shared-embeddings/embeddings
+      volumes:
+        - name: shared-models
+          persistentVolumeClaim:
+            claimName: shared-models
+        - name: shared-embeddings
+          persistentVolumeClaim:
+            claimName: shared-embeddings
+        - name: shared-outputs
+          persistentVolumeClaim:
+            claimName: shared-outputs
+  volumeClaimTemplates:
+    - metadata:
+        name: configs
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Mi

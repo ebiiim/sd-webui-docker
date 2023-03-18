@@ -1,0 +1,93 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+images:
+  - name: sd-webui
+    newName: ghcr.io/ebiiim/sd-webui
+    newTag: v1.0.0
+
+namespace: stable-diffusion-webui
+
+namePrefix: ""
+nameSuffix: ""
+
+resources:
+  # [BASES] Basic things.
+  - ./bases/pvc.yaml
+  - ./bases/sts.yaml
+  - ./bases/svc.yaml
+  # - ./bases/ing.yaml
+
+  # [MODELS] Please install 1 or more models.
+  - ./models/install-sd15.yaml # Stable Diffusion 1.5
+  # - ./models/install-wd15b2.yaml # Waifu Diffusion 1.5 beta2
+
+patchesStrategicMerge: []
+
+patches:
+  # [Ingress] To set ingressClassName and host name, uncomment the patch.
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: stable-diffusion-webui
+    patch: |-
+      # - op: add
+      #   path: /spec/ingressClassName
+      #   value: nginx
+      # - op: replace
+      #   path: /spec/rules/0/host
+      #   value: stable-diffusion.localdomain
+
+  # [StatefulSet] To set storageClassName for volume "configs", uncomment the patch.
+  - target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: stable-diffusion-webui
+    patch: |-
+      # - op: add
+      #   path: /spec/volumeClaimTemplates/0/spec/storageClassName
+      #   value: longhorn
+
+  # [PersistentVolumeClaim/shared-models] To set storageClassName and storage size, uncomment the patch.
+  - target:
+      group: ""
+      version: v1
+      kind: PersistentVolumeClaim
+      name: shared-models
+    patch: |-
+      # - op: add
+      #   path: /spec/storageClassName
+      #   value: longhorn
+      # - op: replace
+      #   path: /spec/resources/requests/storage
+      #   value: 50Gi
+
+  # [PersistentVolumeClaim/shared-embeddings] To set storageClassName and storage size, uncomment the patch.
+  - target:
+      group: ""
+      version: v1
+      kind: PersistentVolumeClaim
+      name: shared-embeddings
+    patch: |-
+      # - op: add
+      #   path: /spec/storageClassName
+      #   value: longhorn
+      # - op: replace
+      #   path: /spec/resources/requests/storage
+      #   value: 5Gi
+
+  # [PersistentVolumeClaim/shared-outputs] To set storageClassName and storage size, uncomment the patch.
+  - target:
+      group: ""
+      version: v1
+      kind: PersistentVolumeClaim
+      name: shared-outputs
+    patch: |-
+      # - op: add
+      #   path: /spec/storageClassName
+      #   value: longhorn
+      # - op: replace
+      #   path: /spec/resources/requests/storage
+      #   value: 50Gi

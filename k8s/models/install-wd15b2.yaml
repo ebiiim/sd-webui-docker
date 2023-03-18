@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: install-model-wd15b2
+spec:
+  template:
+    spec:
+      containers:
+        - name: downloader
+          image: busybox:1
+          volumeMounts:
+            - name: shared-models
+              mountPath: /shared-models
+            - name: shared-embeddings
+              mountPath: /shared-embeddings
+          command: ["/bin/sh"]
+          args:
+            - "-c"
+            - |
+              echo "started" \
+              && mkdir -v -p /shared-models/models/Stable-diffusion \
+              && mkdir -v -p /shared-embeddings/embeddings \
+              && DST=/shared-embeddings/embeddings/wdgoodprompt.bin \
+              && if [ ! -f "$DST" ] ; then wget https://huggingface.co/waifu-diffusion/wd-1-5-beta/resolve/main/embeddings/wdgoodprompt.bin -O "$DST" ; fi \
+              && DST=/shared-embeddings/embeddings/wdbadprompt.pt \
+              && if [ ! -f "$DST" ] ; then wget https://huggingface.co/waifu-diffusion/wd-1-5-beta/resolve/main/embeddings/wdbadprompt.pt -O "$DST" ; fi \
+              && DST=/shared-models/models/Stable-diffusion/wd-1-5-beta2-fp32.yaml \
+              && if [ ! -f "$DST" ] ; then wget https://huggingface.co/waifu-diffusion/wd-1-5-beta2/resolve/main/checkpoints/wd-1-5-beta2-fp32.yaml -O "$DST" ; fi \
+              && DST=/shared-models/models/Stable-diffusion/wd-1-5-beta2-fp32.safetensors \
+              && if [ ! -f "$DST" ] ; then wget https://huggingface.co/waifu-diffusion/wd-1-5-beta2/resolve/main/checkpoints/wd-1-5-beta2-fp32.safetensors -O "$DST" ; fi \
+              && DST=/shared-models/models/Stable-diffusion/wd-1-5-beta2-fp32.vae.pt \
+              && if [ ! -f "$DST" ] ; then wget https://huggingface.co/hakurei/waifu-diffusion-v1-4/resolve/main/vae/kl-f8-anime2.ckpt -O "$DST" ; fi \
+              && echo "completed"
+      volumes:
+        - name: shared-models
+          persistentVolumeClaim:
+            claimName: shared-models
+        - name: shared-embeddings
+          persistentVolumeClaim:
+            claimName: shared-embeddings
+      restartPolicy: Never
+  backoffLimit: 3
