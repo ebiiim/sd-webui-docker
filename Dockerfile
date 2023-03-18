@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu22.04
+FROM nvidia/cuda:11.7.1-runtime-ubuntu22.04
 
 LABEL maintainer "Shunsuke Ise <ise@ebiiim.com>"
 
