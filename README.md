@@ -6,54 +6,83 @@
 
 Yet another Docker image for [stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) focuses on simplicity.
 
-## Getting Started
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-1. Prepare your work directory
-   ```sh
-   # go to your work dir first
-   mkdir -p ./models/Stable-diffusion ./outputs # create dirs
-   echo '{}' | tee config.json ui-config.json # create empty configs
-   ```
-   ```
-    .
-    ├── models
-    │   └── Stable-diffusion
-    ├── outputs
-    ├── config.json
-    └── ui-config.json
-   ```
-1. Download models
-   ```sh
-   curl -L -o models/Stable-diffusion/v1-5-pruned-emaonly.safetensors https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors
-   ```
-   ```
-   .
-    ├── models
-    │   └── Stable-diffusion
-    │       └── v1-5-pruned-emaonly.safetensors
-    ├── outputs
-    ├── config.json
-    └── ui-config.json
-   ```
-1. Run the server
-   ```sh
-   docker run --rm --gpus all -p 7860:7860 \
-     -v "$(pwd)"/models:/work/stable-diffusion-webui/shared-models \
-     -v "$(pwd)"/outputs:/work/stable-diffusion-webui/outputs \
-     -v "$(pwd)"/config.json:/work/stable-diffusion-webui/config.json \
-     -v "$(pwd)"/ui-config.json:/work/stable-diffusion-webui/ui-config.json \
-     ghcr.io/ebiiim/sd-webui \
-     --xformers --api \
-     --ckpt-dir=shared-models/Stable-diffusion
-   ```
+- [**Getting Started**](#getting-started)
+  - [1. Prepare your work directory](#1-prepare-your-work-directory)
+  - [2. Download models](#2-download-models)
+  - [3. Start the server](#3-start-the-server)
+- [**Usage**](#usage)
+  - [Run on GPU servers](#run-on-gpu-servers)
+  - [CPU-only mode](#cpu-only-mode)
+  - [Sync outputs to local](#sync-outputs-to-local)
+  - [Use your own models](#use-your-own-models)
+  - [Sync configs to local](#sync-configs-to-local)
+- [**Kubernetes**](#kubernetes)
+  - [Deploy with Kustomize](#deploy-with-kustomize)
+- [**Acknowledgements**](#acknowledgements)
+- [**Changelog**](#changelog)
 
-## Usage
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+## **Getting Started**
+
+### 1. Prepare your work directory
+
+```sh
+# go to your work dir first
+mkdir -p ./models/Stable-diffusion ./outputs # create dirs
+echo '{}' | tee config.json ui-config.json # create empty configs
+```
+
+```
+.
+├── models
+│   └── Stable-diffusion
+├── outputs
+├── config.json
+└── ui-config.json
+```
+
+### 2. Download models
+
+```sh
+curl -L -o models/Stable-diffusion/v1-5-pruned-emaonly.safetensors https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors
+```
+
+```
+.
+├── models
+│   └── Stable-diffusion
+│       └── v1-5-pruned-emaonly.safetensors
+├── outputs
+├── config.json
+└── ui-config.json
+```
+
+### 3. Start the server
+
+```sh
+docker run --rm --gpus all -p 7860:7860 \
+  -v "$(pwd)"/models:/work/stable-diffusion-webui/shared-models \
+  -v "$(pwd)"/outputs:/work/stable-diffusion-webui/outputs \
+  -v "$(pwd)"/config.json:/work/stable-diffusion-webui/config.json \
+  -v "$(pwd)"/ui-config.json:/work/stable-diffusion-webui/ui-config.json \
+  ghcr.io/ebiiim/sd-webui \
+  --xformers --api \
+  --ckpt-dir=shared-models/Stable-diffusion
+```
+
+Then open http://localhost:7860 in your browser.
+
+## **Usage**
 
 > 💡 Please read [stable-diffusion-webui CLI docs](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Command-Line-Arguments-and-Settings) before using this image.
 
 Basically `docker run --rm --gpus all -p 7860:7860 <IMAGE> [ARGS]...`. The entrypoint is `launch.py --listen` so please pass additional arguments.
 
-**Run on GPU servers**
+### Run on GPU servers
 
 Optionally pass `--xformers` `--api`.
 
@@ -61,7 +90,7 @@ Optionally pass `--xformers` `--api`.
 docker run --rm --gpus all -p 7860:7860 ghcr.io/ebiiim/sd-webui --xformers --api
 ```
 
-**CPU-only mode**
+### CPU-only mode
 
 Pass `--use-cpu all`, and optionally pass `--api`.
 
@@ -69,9 +98,9 @@ Pass `--use-cpu all`, and optionally pass `--api`.
 docker run --rm --gpus all -p 7860:7860 ghcr.io/ebiiim/sd-webui --use-cpu all --api
 ```
 
-**Sync outputs to local**
+### Sync outputs to local
 
-Use [Docker `-v` flag](https://docs.docker.com/storage/volumes/).
+Use Docker `-v` flag.
 
 ```sh
 mkdir -p "$(pwd)"/outputs
@@ -81,9 +110,9 @@ docker run --rm --gpus all -p 7860:7860 \
   --xformers --api
 ```
 
-**Use your own models**
+### Use your own models
 
-Use `--ckpt-dir` and [Docker `-v` flag](https://docs.docker.com/storage/volumes/).
+Use `--ckpt-dir` and Docker `-v` flag.
 
 ```sh
 MODELS_DIR=/path/to/models
@@ -94,9 +123,9 @@ docker run --rm --gpus all -p 7860:7860 \
   --ckpt-dir=shared-models/Stable-diffusion
 ```
 
-**Sync configs to local**
+### Sync configs to local
 
-Use [Docker `-v` flag](https://docs.docker.com/storage/volumes/).
+Use Docker `-v` flag.
 
 ```sh
 echo '{}' | tee config.json ui-config.json
@@ -107,7 +136,15 @@ docker run --rm --gpus all -p 7860:7860 \
   --xformers --api
 ```
 
-## Acknowledgements
+## **Kubernetes**
+
+### Deploy with Kustomize
+
+```sh
+kubectl apply -k https://github.com/ebiiim/sd-webui-docker/k8s
+```
+
+## **Acknowledgements**
 
 This work is based on projects whose licenses are listed below.
 
@@ -118,9 +155,9 @@ This work is based on projects whose licenses are listed below.
   - https://hub.docker.com/r/nvidia/cuda
   - https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
 
-## Changelog
+## **Changelog**
 
-### 1.0.0 - 2023-03-18
+**1.0.0 - 2023-03-18**
 
 - initial release
 - stable-diffusion-webui: [a9fed7c364061ae6efb37f797b6b522cb3cf7aa2](https://github.com/AUTOMATIC1111/stable-diffusion-webui/tree/a9fed7c364061ae6efb37f797b6b522cb3cf7aa2) 2023-03-14
