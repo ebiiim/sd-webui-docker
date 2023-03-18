@@ -4,21 +4,23 @@
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/ebiiim/sd-webui-docker)](https://github.com/ebiiim/sd-webui-docker/releases/latest)
 [![Release](https://github.com/ebiiim/sd-webui-docker/actions/workflows/release.yaml/badge.svg)](https://github.com/ebiiim/sd-webui-docker/actions/workflows/release.yaml)
 
-Yet another [stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) Docker image focused on simplicity.
+Yet another Docker image for [stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) focuses on simplicity.
 
 ## Getting Started
 
 1. Prepare your work directory
    ```sh
    # go to your work dir first
-   mkdir -p ./models/Stable-diffusion
-   mkdir -p -m 777 ./outputs
+   mkdir -p ./models/Stable-diffusion ./outputs # create dirs
+   echo '{}' | tee config.json ui-config.json # create empty configs
    ```
    ```
     .
     ├── models
-    │   └── Stable-diffusion
-    └── outputs
+    │   └── Stable-diffusion
+    ├── outputs
+    ├── config.json
+    └── ui-config.json
    ```
 1. Download models
    ```sh
@@ -29,13 +31,17 @@ Yet another [stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-dif
     ├── models
     │   └── Stable-diffusion
     │       └── v1-5-pruned-emaonly.safetensors
-    └── outputs
+    ├── outputs
+    ├── config.json
+    └── ui-config.json
    ```
 1. Run the server
    ```sh
    docker run --rm --gpus all -p 7860:7860 \
      -v "$(pwd)"/models:/work/stable-diffusion-webui/shared-models \
      -v "$(pwd)"/outputs:/work/stable-diffusion-webui/outputs \
+     -v "$(pwd)"/config.json:/work/stable-diffusion-webui/config.json \
+     -v "$(pwd)"/ui-config.json:/work/stable-diffusion-webui/ui-config.json \
      ghcr.io/ebiiim/sd-webui \
      --xformers --api \
      --ckpt-dir=shared-models/Stable-diffusion
@@ -68,8 +74,11 @@ docker run --rm --gpus all -p 7860:7860 ghcr.io/ebiiim/sd-webui --use-cpu all --
 Use [Docker `-v` flag](https://docs.docker.com/storage/volumes/).
 
 ```sh
-mkdir -p -m 777 "$(pwd)"/outputs
-docker run --rm --gpus all -p 7860:7860 -v "$(pwd)"/outputs:/work/stable-diffusion-webui/outputs ghcr.io/ebiiim/sd-webui --xformers --api
+mkdir -p "$(pwd)"/outputs
+docker run --rm --gpus all -p 7860:7860 \
+  -v "$(pwd)"/outputs:/work/stable-diffusion-webui/outputs \
+  ghcr.io/ebiiim/sd-webui \
+  --xformers --api
 ```
 
 **Use your own models**
@@ -78,7 +87,24 @@ Use `--ckpt-dir` and [Docker `-v` flag](https://docs.docker.com/storage/volumes/
 
 ```sh
 MODELS_DIR=/path/to/models
-docker run --rm --gpus all -p 7860:7860 -v "${MODELS_DIR}":/work/stable-diffusion-webui/shared-models ghcr.io/ebiiim/sd-webui --xformers --api --ckpt-dir=shared-models/Stable-diffusion
+docker run --rm --gpus all -p 7860:7860 \
+  -v "${MODELS_DIR}":/work/stable-diffusion-webui/shared-models \
+  ghcr.io/ebiiim/sd-webui \
+  --xformers --api \
+  --ckpt-dir=shared-models/Stable-diffusion
+```
+
+**Sync configs to local**
+
+Use [Docker `-v` flag](https://docs.docker.com/storage/volumes/).
+
+```sh
+echo '{}' | tee config.json ui-config.json
+docker run --rm --gpus all -p 7860:7860 \
+  -v "$(pwd)"/config.json:/work/stable-diffusion-webui/config.json \
+  -v "$(pwd)"/ui-config.json:/work/stable-diffusion-webui/ui-config.json \
+  ghcr.io/ebiiim/sd-webui \
+  --xformers --api
 ```
 
 ## Acknowledgements
