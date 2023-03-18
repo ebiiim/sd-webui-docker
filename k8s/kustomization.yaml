@@ -4,7 +4,7 @@ kind: Kustomization
 images:
   - name: sd-webui
     newName: ghcr.io/ebiiim/sd-webui
-    newTag: v1.0.0
+    newTag: v1.1.0
 
 namespace: stable-diffusion-webui
 
@@ -13,14 +13,20 @@ nameSuffix: ""
 
 resources:
   # [BASES] Basic things.
-  - ./bases/pvc.yaml
-  - ./bases/sts.yaml
-  - ./bases/svc.yaml
-  # - ./bases/ing.yaml
+  # PersistentVolumeClaim
+  - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/pvc.yaml
+  # StatefulSet
+  - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/sts.yaml
+  # Service
+  - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/svc.yaml
+  # Ingress (optional)
+  # - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/ing.yaml
 
   # [MODELS] Please install 1 or more models.
-  - ./models/install-sd15.yaml # Stable Diffusion 1.5
-  # - ./models/install-wd15b2.yaml # Waifu Diffusion 1.5 beta2
+  # Stable Diffusion 1.5
+  - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/models/install-sd15.yaml
+  # Waifu Diffusion 1.5 beta2
+  # - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/models/install-wd15b2.yaml
 
 patchesStrategicMerge: []
 

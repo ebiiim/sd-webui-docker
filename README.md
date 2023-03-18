@@ -20,7 +20,11 @@ Yet another Docker image for [stable-diffusion-webui](https://github.com/AUTOMAT
   - [Use your own models](#use-your-own-models)
   - [Sync configs to local](#sync-configs-to-local)
 - [**Kubernetes**](#kubernetes)
+  - [Architecture](#architecture)
   - [Deploy with Kustomize](#deploy-with-kustomize)
+  - [Configure kustomization.yaml](#configure-kustomizationyaml)
+    - [Enable Ingress](#enable-ingress)
+    - [Use Waifu Diffusion](#use-waifu-diffusion)
 - [**Acknowledgements**](#acknowledgements)
 - [**Changelog**](#changelog)
 
@@ -138,10 +142,83 @@ docker run --rm --gpus all -p 7860:7860 \
 
 ## **Kubernetes**
 
+### Architecture
+![components.png](docs/components.png)
+
 ### Deploy with Kustomize
+
+> 💡 Please make sure GPUs are enabled on your cluster.
+
+Create the namespace, 
+```sh
+kubectl create ns stable-diffusion-webui
+```
+
+apply manifests,
 
 ```sh
 kubectl apply -k https://github.com/ebiiim/sd-webui-docker/k8s
+```
+
+forward the port to access,
+
+```sh
+kubectl port-forward -n stable-diffusion-webui svc/stable-diffusion-webui 7860:7860
+```
+
+and open http://localhost:7860 in your browser.
+
+### Configure kustomization.yaml
+
+Download `kustomization.yaml` and edit it.
+
+```sh
+curl -Lo https://raw.githubusercontent.com/ebiiim/sd-webui-docker/main/k8s/kustomization.yaml
+```
+
+#### Enable Ingress
+
+Uncomment the resource,
+
+```diff
+ resources:
+   # Ingress (optional)
+-  # - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/ing.yaml
++  - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/ing.yaml
+```
+
+and set your domain name.
+
+```diff
+ patches:
+   # [Ingress] To set ingressClassName and host name, uncomment the patch.
+   - target:
+       group: networking.k8s.io
+       version: v1
+       kind: Ingress
+       name: stable-diffusion-webui
+     patch: |-
+       # - op: add
+       #   path: /spec/ingressClassName
+       #   value: nginx
+-      # - op: replace
+-      #   path: /spec/rules/0/host
+-      #   value: stable-diffusion.localdomain
++      - op: replace
++        path: /spec/rules/0/host
++        value: [YOUR_DOMAIN_HERE]
+```
+
+#### Use Waifu Diffusion
+
+Uncomment the resource.
+
+```diff
+  resources:
+    # [MODELS] Please install 1 or more models.
+    - ./models/install-sd15.yaml # Stable Diffusion 1.5
+-   # - ./models/install-wd15b2.yaml # Waifu Diffusion 1.5 beta2
++   - ./models/install-wd15b2.yaml # Waifu Diffusion 1.5 beta2
 ```
 
 ## **Acknowledgements**
@@ -156,6 +233,10 @@ This work is based on projects whose licenses are listed below.
   - https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
 
 ## **Changelog**
+
+**1.1.0 - 2023-03-??**
+
+- Kubernetes support
 
 **1.0.0 - 2023-03-18**
 
