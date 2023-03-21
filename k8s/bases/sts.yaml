@@ -2,8 +2,6 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: stable-diffusion-webui
-  labels:
-    app: stable-diffusion-webui
 spec:
   serviceName: stable-diffusion-webui
   replicas: 1
@@ -100,15 +98,6 @@ spec:
               mountPath: /shared-outputs
             - name: configs
               mountPath: /configs
-          resources:
-            requests:
-              memory: 10Gi
-              cpu: 1000m
-              nvidia.com/gpu: "1"
-            limits:
-              memory: 20Gi
-              cpu: 2000m
-              nvidia.com/gpu: "1"
           args:
             - --xformers
             - --api
@@ -117,6 +106,15 @@ spec:
             - --ui-config-file=/configs/ui-config.json
             - --ckpt-dir=/shared-models/models/Stable-diffusion
             - --embeddings-dir=/shared-embeddings/embeddings
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 10Gi
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: 2000m
+              memory: 20Gi
+              nvidia.com/gpu: "1"
       volumes:
         - name: shared-models
           persistentVolumeClaim:
