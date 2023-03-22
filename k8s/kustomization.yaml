@@ -23,9 +23,9 @@ resources:
   # - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/ing.yaml
 
   # [MODELS] Please install 1 or more models.
-  # Stable Diffusion 1.5
+  # Stable Diffusion 1.5 (License: CreativeML Open RAIL-M)
   - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/models/install-sd15.yaml
-  # Waifu Diffusion 1.5 beta2
+  # Waifu Diffusion 1.5 beta2 (License: Fair AI Public License 1.0-SD)
   # - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/models/install-wd15b2.yaml
 
 patchesStrategicMerge: []

@@ -96,10 +96,10 @@ docker run --rm --gpus all -p 7860:7860 ghcr.io/ebiiim/sd-webui --xformers --api
 
 ### CPU-only mode
 
-Pass `--use-cpu all`, and optionally pass `--api`.
+Pass `--skip-torch-cuda-test` `--no-half` `--use-cpu all`, and optionally pass `--api`.
 
 ```sh
-docker run --rm --gpus all -p 7860:7860 ghcr.io/ebiiim/sd-webui --use-cpu all --api
+docker run --rm -p 7860:7860 ghcr.io/ebiiim/sd-webui --skip-torch-cuda-test --no-half --use-cpu all --api
 ```
 
 ### Sync outputs to local
@@ -216,9 +216,11 @@ Uncomment the resource.
 ```diff
   resources:
     # [MODELS] Please install 1 or more models.
-    - ./models/install-sd15.yaml # Stable Diffusion 1.5
--   # - ./models/install-wd15b2.yaml # Waifu Diffusion 1.5 beta2
-+   - ./models/install-wd15b2.yaml # Waifu Diffusion 1.5 beta2
+    # Stable Diffusion 1.5 (License: CreativeML Open RAIL-M)
+    - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/models/install-sd15.yaml
+    # Waifu Diffusion 1.5 beta2 (License: Fair AI Public License 1.0-SD)
+-   # - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/models/install-wd15b2.yaml
++   - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/models/install-wd15b2.yaml
 ```
 
 ## **Acknowledgements**
