@@ -1,0 +1,29 @@
+# https://huggingface.co/waifu-diffusion/wd-1-5-beta2
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: install-model-sd15
+spec:
+  template:
+    spec:
+      containers:
+        - name: downloader
+          image: busybox:1
+          volumeMounts:
+            - name: shared-models
+              mountPath: /shared-models
+          command: ["/bin/sh"]
+          args:
+            - "-c"
+            - |
+              echo "started" \
+              && mkdir -v -p /shared-models/models/Stable-diffusion \
+              && DST=/shared-models/models/Stable-diffusion/v1-5-pruned-emaonly.safetensors \
+              && if [ ! -f "$DST" ] ; then wget https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors -O "$DST" ; fi \
+              && echo "completed"
+      volumes:
+        - name: shared-models
+          persistentVolumeClaim:
+            claimName: shared-models
+      restartPolicy: Never
+  backoffLimit: 3

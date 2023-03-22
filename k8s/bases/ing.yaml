@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stable-diffusion-webui
+spec:
+  rules:
+    - host: stable-diffusion-webui.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: stable-diffusion-webui
+                port:
+                  name: http

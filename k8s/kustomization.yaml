@@ -1,0 +1,99 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+images:
+  - name: sd-webui
+    newName: ghcr.io/ebiiim/sd-webui
+    newTag: v1.1.0
+
+namespace: stable-diffusion-webui
+
+namePrefix: ""
+nameSuffix: ""
+
+resources:
+  # [BASES] Basic things.
+  # PersistentVolumeClaim
+  - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/pvc.yaml
+  # StatefulSet
+  - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/sts.yaml
+  # Service
+  - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/svc.yaml
+  # Ingress (optional)
+  # - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/ing.yaml
+
+  # [MODELS] Please install 1 or more models.
+  # Stable Diffusion 1.5 (License: CreativeML Open RAIL-M)
+  - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/models/install-sd15.yaml
+  # Waifu Diffusion 1.5 beta2 (License: Fair AI Public License 1.0-SD)
+  # - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/models/install-wd15b2.yaml
+
+patchesStrategicMerge: []
+
+patches:
+  # [Ingress] To set ingressClassName and host name, uncomment the patch.
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: stable-diffusion-webui
+    patch: |-
+      # - op: add
+      #   path: /spec/ingressClassName
+      #   value: nginx
+      # - op: replace
+      #   path: /spec/rules/0/host
+      #   value: stable-diffusion.localdomain
+
+  # [StatefulSet] To set storageClassName for volume "configs", uncomment the patch.
+  - target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: stable-diffusion-webui
+    patch: |-
+      # - op: add
+      #   path: /spec/volumeClaimTemplates/0/spec/storageClassName
+      #   value: longhorn
+
+  # [PersistentVolumeClaim/shared-models] To set storageClassName and storage size, uncomment the patch.
+  - target:
+      group: ""
+      version: v1
+      kind: PersistentVolumeClaim
+      name: shared-models
+    patch: |-
+      # - op: add
+      #   path: /spec/storageClassName
+      #   value: longhorn
+      # - op: replace
+      #   path: /spec/resources/requests/storage
+      #   value: 50Gi
+
+  # [PersistentVolumeClaim/shared-embeddings] To set storageClassName and storage size, uncomment the patch.
+  - target:
+      group: ""
+      version: v1
+      kind: PersistentVolumeClaim
+      name: shared-embeddings
+    patch: |-
+      # - op: add
+      #   path: /spec/storageClassName
+      #   value: longhorn
+      # - op: replace
+      #   path: /spec/resources/requests/storage
+      #   value: 5Gi
+
+  # [PersistentVolumeClaim/shared-outputs] To set storageClassName and storage size, uncomment the patch.
+  - target:
+      group: ""
+      version: v1
+      kind: PersistentVolumeClaim
+      name: shared-outputs
+    patch: |-
+      # - op: add
+      #   path: /spec/storageClassName
+      #   value: longhorn
+      # - op: replace
+      #   path: /spec/resources/requests/storage
+      #   value: 50Gi
