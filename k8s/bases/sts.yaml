@@ -99,9 +99,10 @@ spec:
             - name: configs
               mountPath: /configs
           args:
-            - --xformers
             - --api
-            - --no-download-sd-model
+            - --xformers # assumes GPU mode
+            - --disable-nan-check # this is required to use some models
+            - --no-download-sd-model # models are downloaded by batches
             - --ui-settings-file=/configs/config.json
             - --ui-config-file=/configs/ui-config.json
             - --ckpt-dir=/shared-models/models/Stable-diffusion
