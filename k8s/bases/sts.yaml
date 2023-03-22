@@ -106,6 +106,12 @@ spec:
             - --ui-config-file=/configs/ui-config.json
             - --ckpt-dir=/shared-models/models/Stable-diffusion
             - --embeddings-dir=/shared-embeddings/embeddings
+          livenessProbe:
+            httpGet:
+              path: /sdapi/v1/progress?skip_current_image=true
+              port: 7860
+            initialDelaySeconds: 300
+            periodSeconds: 10
           resources:
             requests:
               cpu: 1000m
