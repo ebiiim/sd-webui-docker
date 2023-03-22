@@ -236,7 +236,7 @@ This work is based on projects whose licenses are listed below.
 
 ## **Changelog**
 
-**1.1.0 - 2023-03-??**
+**1.1.0 - 2023-03-22**
 
 - Kubernetes support
 
