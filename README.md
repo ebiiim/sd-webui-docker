@@ -10,14 +10,11 @@ Yet another Docker image for [stable-diffusion-webui](https://github.com/AUTOMAT
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 - [**Getting Started**](#getting-started)
-  - [1. Prepare your work directory](#1-prepare-your-work-directory)
-  - [2. Download models](#2-download-models)
-  - [3. Start the server](#3-start-the-server)
 - [**Usage**](#usage)
   - [Run on GPU servers](#run-on-gpu-servers)
   - [CPU-only mode](#cpu-only-mode)
   - [Sync outputs to local](#sync-outputs-to-local)
-  - [Use your own models](#use-your-own-models)
+  - [Mount your own `models` directory](#mount-your-own-models-directory)
   - [Sync configs to local](#sync-configs-to-local)
 - [**Kubernetes**](#kubernetes)
   - [Architecture](#architecture)
@@ -32,50 +29,46 @@ Yet another Docker image for [stable-diffusion-webui](https://github.com/AUTOMAT
 
 ## **Getting Started**
 
-### 1. Prepare your work directory
+**1. Prepare your work directory**
 
 ```sh
-# go to your work dir first
-mkdir -p ./models/Stable-diffusion ./outputs # create dirs
-echo '{}' | tee config.json ui-config.json # create empty configs
+# Go to your work dir first.
+# E.g., `mkdir work && cd work`
+
+# create dirs
+mkdir -m 777 -p .cache embeddings extensions log models models/Stable-diffusion models/VAE-approx outputs
+
+# create empty files
+echo '{}' | tee config.json ui-config.json cache.json
 ```
 
-```
-.
-├── models
-│   └── Stable-diffusion
-├── outputs
-├── config.json
-└── ui-config.json
-```
-
-### 2. Download models
+**2. Download models**
 
 ```sh
-curl -L -o models/Stable-diffusion/v1-5-pruned-emaonly.safetensors https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors
+# download Stable Diffusion v1.5 if not exists
+DST=models/Stable-diffusion/v1-5-pruned-emaonly.safetensors
+if [ ! -f "$DST" ] ; then curl -L -o "$DST" https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors ; fi
+
+# download VAE if not exists
+DST=models/VAE-approx/model.pt
+if [ ! -f "$DST" ] ; then curl -L -o "$DST" https://github.com/AUTOMATIC1111/stable-diffusion-webui/raw/master/models/VAE-approx/model.pt ; fi
 ```
 
-```
-.
-├── models
-│   └── Stable-diffusion
-│       └── v1-5-pruned-emaonly.safetensors
-├── outputs
-├── config.json
-└── ui-config.json
-```
-
-### 3. Start the server
+**3. Start the server**
 
 ```sh
 docker run --rm --gpus all -p 7860:7860 \
-  -v "$(pwd)"/models:/work/stable-diffusion-webui/shared-models \
+  -e TRANSFORMERS_CACHE=/work/stable-diffusion-webui/.cache \
+  -v "$(pwd)"/.cache:/work/stable-diffusion-webui/.cache \
+  -v "$(pwd)"/embeddings:/work/stable-diffusion-webui/embeddings \
+  -v "$(pwd)"/extensions:/work/stable-diffusion-webui/extensions \
+  -v "$(pwd)"/log:/work/stable-diffusion-webui/log \
+  -v "$(pwd)"/models:/work/stable-diffusion-webui/models \
   -v "$(pwd)"/outputs:/work/stable-diffusion-webui/outputs \
   -v "$(pwd)"/config.json:/work/stable-diffusion-webui/config.json \
   -v "$(pwd)"/ui-config.json:/work/stable-diffusion-webui/ui-config.json \
-  ghcr.io/ebiiim/sd-webui \
-  --xformers --api \
-  --ckpt-dir=shared-models/Stable-diffusion
+  -v "$(pwd)"/cache.json:/work/stable-diffusion-webui/cache.json \
+  ghcr.io/ebiiim/sd-webui --xformers --api
 ```
 
 Then open http://localhost:7860 in your browser.
@@ -114,17 +107,16 @@ docker run --rm --gpus all -p 7860:7860 \
   --xformers --api
 ```
 
-### Use your own models
+### Mount your own `models` directory
 
-Use `--ckpt-dir` and Docker `-v` flag.
+Use Docker `-v` flag.
 
 ```sh
 MODELS_DIR=/path/to/models
 docker run --rm --gpus all -p 7860:7860 \
-  -v "${MODELS_DIR}":/work/stable-diffusion-webui/shared-models \
+  -v "${MODELS_DIR}":/work/stable-diffusion-webui/models \
   ghcr.io/ebiiim/sd-webui \
-  --xformers --api \
-  --ckpt-dir=shared-models/Stable-diffusion
+  --xformers --api
 ```
 
 ### Sync configs to local
@@ -132,10 +124,11 @@ docker run --rm --gpus all -p 7860:7860 \
 Use Docker `-v` flag.
 
 ```sh
-echo '{}' | tee config.json ui-config.json
+echo '{}' | tee config.json ui-config.json cache.json
 docker run --rm --gpus all -p 7860:7860 \
   -v "$(pwd)"/config.json:/work/stable-diffusion-webui/config.json \
   -v "$(pwd)"/ui-config.json:/work/stable-diffusion-webui/ui-config.json \
+  -v "$(pwd)"/cache.json:/work/stable-diffusion-webui/cache.json \
   ghcr.io/ebiiim/sd-webui \
   --xformers --api
 ```
@@ -143,6 +136,9 @@ docker run --rm --gpus all -p 7860:7860 \
 ## **Kubernetes**
 
 ### Architecture
+
+> ⚠️ This is a bit old and now we have more PVCs to sync other resources.
+
 ![components.png](docs/components.png)
 
 ### Deploy with Kustomize
@@ -183,8 +179,8 @@ Uncomment the resource,
 ```diff
  resources:
    # Ingress (optional)
--  # - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/ing.yaml
-+  - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/bases/ing.yaml
+-  # - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.2.0/k8s/bases/ing.yaml
++  - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.2.0/k8s/bases/ing.yaml
 ```
 
 and set your domain name.
@@ -217,10 +213,10 @@ Uncomment the resource.
   resources:
     # [MODELS] Please install 1 or more models.
     # Stable Diffusion 1.5 (License: CreativeML Open RAIL-M)
-    - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/models/install-sd15.yaml
+    - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.2.0/k8s/models/install-sd15.yaml
     # Waifu Diffusion 1.5 beta2 (License: Fair AI Public License 1.0-SD)
--   # - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/models/install-wd15b2.yaml
-+   - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.1.0/k8s/models/install-wd15b2.yaml
+-   # - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.2.0/k8s/models/install-wd15b2.yaml
++   - https://raw.githubusercontent.com/ebiiim/sd-webui-docker/v1.2.0/k8s/models/install-wd15b2.yaml
 ```
 
 ## **Acknowledgements**
@@ -235,6 +231,11 @@ This work is based on projects whose licenses are listed below.
   - https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
 
 ## **Changelog**
+
+**1.2.0 - 2023-03-25**
+
+- update docs
+- K8s: add PVCs to sync resources
 
 **1.1.0 - 2023-03-22**
 
