@@ -17,8 +17,9 @@ spec:
             - "-c"
             - |
               echo "started" \
-              && mkdir -v -p /shared-models/models/Stable-diffusion \
-              && DST=/shared-models/models/Stable-diffusion/v1-5-pruned-emaonly.safetensors \
+              && DIR=/shared-models/Stable-diffusion \
+              && mkdir -v -p "$DIR" && chmod -v 777 "$DIR" \
+              && DST="$DIR"/v1-5-pruned-emaonly.safetensors \
               && if [ ! -f "$DST" ] ; then wget https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors -O "$DST" ; fi \
               && echo "completed"
       volumes:

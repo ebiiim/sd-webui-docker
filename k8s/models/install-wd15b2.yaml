@@ -21,17 +21,19 @@ spec:
             - "-c"
             - |
               echo "started" \
-              && mkdir -v -p /shared-models/models/Stable-diffusion \
-              && mkdir -v -p /shared-embeddings/embeddings \
-              && DST=/shared-embeddings/embeddings/wdgoodprompt.bin \
+              && DIR=/shared-embeddings \
+              && mkdir -v -p "$DIR" && chmod -v 777 "$DIR" \
+              && DST="$DIR"/wdgoodprompt.bin \
               && if [ ! -f "$DST" ] ; then wget https://huggingface.co/waifu-diffusion/wd-1-5-beta/resolve/main/embeddings/wdgoodprompt.bin -O "$DST" ; fi \
-              && DST=/shared-embeddings/embeddings/wdbadprompt.pt \
+              && DST="$DIR"/wdbadprompt.pt \
               && if [ ! -f "$DST" ] ; then wget https://huggingface.co/waifu-diffusion/wd-1-5-beta/resolve/main/embeddings/wdbadprompt.pt -O "$DST" ; fi \
-              && DST=/shared-models/models/Stable-diffusion/wd-1-5-beta2-fp32.yaml \
+              && DIR=/shared-models/Stable-diffusion \
+              && mkdir -v -p "$DIR" && chmod -v 777 "$DIR" \
+              && DST="$DIR"/wd-1-5-beta2-fp32.yaml \
               && if [ ! -f "$DST" ] ; then wget https://huggingface.co/waifu-diffusion/wd-1-5-beta2/resolve/main/checkpoints/wd-1-5-beta2-fp32.yaml -O "$DST" ; fi \
-              && DST=/shared-models/models/Stable-diffusion/wd-1-5-beta2-fp32.safetensors \
+              && DST="$DIR"/wd-1-5-beta2-fp32.safetensors \
               && if [ ! -f "$DST" ] ; then wget https://huggingface.co/waifu-diffusion/wd-1-5-beta2/resolve/main/checkpoints/wd-1-5-beta2-fp32.safetensors -O "$DST" ; fi \
-              && DST=/shared-models/models/Stable-diffusion/wd-1-5-beta2-fp32.vae.pt \
+              && DST="$DIR"/wd-1-5-beta2-fp32.vae.pt \
               && if [ ! -f "$DST" ] ; then wget https://huggingface.co/hakurei/waifu-diffusion-v1-4/resolve/main/vae/kl-f8-anime2.ckpt -O "$DST" ; fi \
               && echo "completed"
       volumes:

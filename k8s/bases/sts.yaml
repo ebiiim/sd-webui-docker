@@ -14,70 +14,107 @@ spec:
         app: stable-diffusion-webui
     spec:
       initContainers:
-        - name: init-volume-permission
+        - name: init-fix-permissions
           image: busybox:1
           volumeMounts:
-            - name: shared-models
-              mountPath: /shared-models
             - name: shared-embeddings
               mountPath: /shared-embeddings
+            - name: shared-extensions
+              mountPath: /shared-extensions
+            - name: shared-models
+              mountPath: /shared-models
             - name: shared-outputs
               mountPath: /shared-outputs
-            - name: configs
-              mountPath: /configs
+            - name: datadir
+              mountPath: /datadir
           command: ["/bin/sh"]
+          # NOTE: an ext4 volume has a `lost+found` dir on its root path and causes the app crash (due to the permission),
+          #       so do chmod 777 here (other solutions: use xfs, avoid using root paths).
           args:
             - -c
             - |
-              echo "set permissions" \
-              && find /shared-models -maxdepth 1 -type d -exec chmod -v 777 {} \; \
+              echo "fix permissions" \
               && find /shared-embeddings -maxdepth 1 -type d -exec chmod -v 777 {} \; \
+              && find /shared-extensions -maxdepth 1 -type d -exec chmod -v 777 {} \; \
+              && find /shared-models -maxdepth 1 -type d -exec chmod -v 777 {} \; \
               && find /shared-outputs -maxdepth 1 -type d -exec chmod -v 777 {} \; \
-              && find /configs -maxdepth 1 -type d -exec chmod -v 777 {} \;
-        - name: init-config-create
+              && find /datadir -maxdepth 1 -type d -exec chmod -v 777 {} \;
+        - name: init-setup-dirs
           image: sd-webui
           volumeMounts:
-            - name: configs
-              mountPath: /configs
+            - name: shared-models
+              mountPath: /shared-models
+            - name: datadir
+              mountPath: /datadir
+          command: ["/bin/sh"]
+          # NOTE: The app will try to create dirs and crash if it's on a read-only file system, so pre-create them here.
+          args:
+            - "-c"
+            - |
+              echo "create dirs if not exist" \
+              && mkdir -v -m 777 -p \
+                /datadir/.cache \
+                /shared-models/Codeformer \
+                /shared-models/deepbooru \
+                /shared-models/ESRGAN \
+                /shared-models/GFPGAN \
+                /shared-models/hypernetworks \
+                /shared-models/LDSR \
+                /shared-models/Lora \
+                /shared-models/RealESRGAN \
+                /shared-models/Stable-diffusion \
+                /shared-models/SwinIR \
+                /shared-models/VAE \
+                /shared-models/VAE-approx \
+              && echo "create empty json files if not exist" \
+              && CFG=/datadir/config.json \
+              && if [ ! -f "$CFG" ] ; then echo "{}" > "$CFG" ; fi \
+              && CFG=/datadir/ui-config.json \
+              && if [ ! -f "$CFG" ] ; then echo "{}" > "$CFG" ; fi \
+              && CFG=/datadir/cache.json \
+              && if [ ! -f "$CFG" ] ; then echo "{}" > "$CFG" ; fi
+        - name: init-setup-default-vae
+          image: sd-webui
+          volumeMounts:
+            - name: shared-models
+              mountPath: /shared-models
           command: ["/bin/sh"]
           args:
             - "-c"
             - |
-              echo "create empty configs if not exist" \
-              && CFG=/configs/config.json \
-              && if [ ! -f "$CFG" ] ; then echo "{}" > "$CFG" ; fi \
-              && CFG=/configs/ui-config.json \
-              && if [ ! -f "$CFG" ] ; then echo "{}" > "$CFG" ; fi
-        - name: init-config-set-output-dir
+              echo "copy default VAE" \
+              && DST=/shared-models/Stable-diffusion/VAE-approx/model.pt \ 
+              && if [ ! -f "$DST" ] ; then cp -v models/VAE-approx/model.pt "$DST" ; fi
+        - name: init-config-set-dirs
           image: sd-webui
           volumeMounts:
-            - name: configs
-              mountPath: /configs
+            - name: datadir
+              mountPath: /datadir
           command: ["/bin/sh"]
           args:
             - "-c"
             - |
               echo "set output dirs to the config file" \
-              && CFG=/configs/config.json \
-              && OUT_T2I=/shared-outputs/$HOSTNAME/outputs/txt2img-images \
-              && OUT_I2I=/shared-outputs/$HOSTNAME/outputs/img2img-images \
-              && OUT_EX=/shared-outputs/$HOSTNAME/outputs/extras-images \
-              && OUT_T2I_G=/shared-outputs/$HOSTNAME/outputs/txt2img-grids \
-              && OUT_I2I_G=/shared-outputs/$HOSTNAME/outputs/img2img-grids \
-              && OUT_SAVE=/shared-outputs/$HOSTNAME/log/images \
+              && CFG=/datadir/config.json \
+              && OUT_T2I=/datadir/outputs/$HOSTNAME/outputs/txt2img-images \
+              && OUT_I2I=/datadir/outputs/$HOSTNAME/outputs/img2img-images \
+              && OUT_EX=/datadir/outputs/$HOSTNAME/outputs/extras-images \
+              && OUT_T2I_G=/datadir/outputs/$HOSTNAME/outputs/txt2img-grids \
+              && OUT_I2I_G=/datadir/outputs/$HOSTNAME/outputs/img2img-grids \
+              && OUT_SAVE=/datadir/outputs/$HOSTNAME/log/images \
               && ./venv/bin/python -c \
                   "from modules import shared; shared.opts.load('$CFG'); shared.opts.set('outdir_txt2img_samples', '$OUT_T2I'); shared.opts.set('outdir_img2img_samples', '$OUT_I2I'); shared.opts.set('outdir_extras_samples', '$OUT_EX'); shared.opts.set('outdir_txt2img_grids', '$OUT_T2I_G'); shared.opts.set('outdir_img2img_grids', '$OUT_I2I_G'); shared.opts.set('outdir_save', '$OUT_SAVE'); shared.opts.save('$CFG')"
-        - name: init-config-mod
+        - name: init-config-mods
           image: sd-webui
           volumeMounts:
-            - name: configs
-              mountPath: /configs
+            - name: datadir
+              mountPath: /datadir
           command: ["/bin/sh"]
           args:
             - "-c"
             - |
               echo "modify the config file" \
-              && CFG=/configs/config.json \
+              && CFG=/datadir/config.json \
               && ./venv/bin/python -c \
                   "from modules import shared; shared.opts.load('$CFG'); shared.opts.set('save_txt', True); shared.opts.save('$CFG')"
       containers:
@@ -87,26 +124,28 @@ spec:
             - name: http
               containerPort: 7860
           volumeMounts:
-            # NOTE: an ext4 volume has a `lost+found` dir on its root path and causes the app crash (due to the permission), so avoid using root paths (or use xfs, or chmod 777)
-            - name: shared-models
-              mountPath: /shared-models
-              readOnly: true
+            - name: datadir
+              mountPath: /datadir
             - name: shared-embeddings
-              mountPath: /shared-embeddings
+              mountPath: /datadir/embeddings
+              readOnly: true
+            - name: shared-extensions
+              mountPath: /datadir/extensions
+              readOnly: true
+            - name: shared-models
+              mountPath: /datadir/models
               readOnly: true
             - name: shared-outputs
-              mountPath: /shared-outputs
-            - name: configs
-              mountPath: /configs
+              mountPath: /datadir/outputs
+          env:
+            - name: TRANSFORMERS_CACHE
+              value: "/datadir/.cache"
           args:
             - --api
             - --xformers # assumes GPU mode
             - --disable-nan-check # this is required to use some models
             - --no-download-sd-model # models are downloaded by batches
-            - --ui-settings-file=/configs/config.json
-            - --ui-config-file=/configs/ui-config.json
-            - --ckpt-dir=/shared-models/models/Stable-diffusion
-            - --embeddings-dir=/shared-embeddings/embeddings
+            - --data-dir=/datadir
           livenessProbe:
             httpGet:
               path: /sdapi/v1/progress?skip_current_image=true
@@ -123,18 +162,21 @@ spec:
               memory: 20Gi
               nvidia.com/gpu: "1"
       volumes:
-        - name: shared-models
-          persistentVolumeClaim:
-            claimName: shared-models
         - name: shared-embeddings
           persistentVolumeClaim:
             claimName: shared-embeddings
+        - name: shared-extensions
+          persistentVolumeClaim:
+            claimName: shared-extensions
+        - name: shared-models
+          persistentVolumeClaim:
+            claimName: shared-models
         - name: shared-outputs
           persistentVolumeClaim:
             claimName: shared-outputs
   volumeClaimTemplates:
     - metadata:
-        name: configs
+        name: datadir
       spec:
         accessModes:
           - ReadWriteOnce
