@@ -83,7 +83,7 @@ spec:
             - "-c"
             - |
               echo "copy default VAE" \
-              && DST=/shared-models/Stable-diffusion/VAE-approx/model.pt \ 
+              && DST=/shared-models/VAE-approx/model.pt \
               && if [ ! -f "$DST" ] ; then cp -v models/VAE-approx/model.pt "$DST" ; fi
         - name: init-config-set-dirs
           image: sd-webui
