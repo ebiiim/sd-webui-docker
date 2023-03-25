@@ -1,0 +1,32 @@
+# Run `kubectl exec -it debug -- /bin/sh` to debug
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug
+spec:
+  containers:
+    - name: debug
+      image: busybox:1
+      volumeMounts:
+        - name: shared-embeddings
+          mountPath: /shared-embeddings
+        - name: shared-extensions
+          mountPath: /shared-extensions
+        - name: shared-models
+          mountPath: /shared-models
+        - name: shared-outputs
+          mountPath: /shared-outputs
+      command: ["/bin/sh", "-ec", "sleep 86400"]
+  volumes:
+    - name: shared-embeddings
+      persistentVolumeClaim:
+        claimName: shared-embeddings
+    - name: shared-extensions
+      persistentVolumeClaim:
+        claimName: shared-extensions
+    - name: shared-models
+      persistentVolumeClaim:
+        claimName: shared-models
+    - name: shared-outputs
+      persistentVolumeClaim:
+        claimName: shared-outputs
